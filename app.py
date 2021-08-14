@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, flash
+from flask import Flask, render_template, request, redirect, flash, session
 from flask_debugtoolbar import DebugToolbarExtension
 from surveys import satisfaction_survey
 
@@ -7,16 +7,19 @@ app.config['SECRET_KEY'] = 'blahblahblah123'
 
 debug = DebugToolbarExtension(app)
 
-responses = []
-
 @app.route('/')
 def home_route():
   return render_template('home.html')
 
+@app.route('/init', methods=['POST'])
+def init_survey_session():
+  session['responses'] = []
+  return redirect('/question/0')
+
 @app.route('/question/<int:ques_num>')
 def questions_route(ques_num):
-  if ques_num != len(responses):
-    ques_num = len(responses)
+  if ques_num != len(session['responses']):
+    ques_num = len(session['responses'])
 
     if ques_num > len(satisfaction_survey.questions)-1:
       flash("You have already answered all the questions.")
@@ -35,7 +38,11 @@ def questions_route(ques_num):
 
 @app.route('/answer<int:next_q>', methods=['POST'])
 def answer_route(next_q):
+  responses = session['responses']
   responses.append(request.form['options'])
+  session['responses'] = responses
+
+  print(session['responses'])
 
   if next_q < len(satisfaction_survey.questions):
     return redirect(f'/question/{next_q}')
